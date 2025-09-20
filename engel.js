@@ -8,7 +8,6 @@
             "CONTROL", "SHIFT", "ALT", "ALTGRAPH", "FN", "STRG"
         ];
 
-        // Eğer bu tuşlardan biri basılırsa engelle
         if (blockedKeys.includes(key)) {
             e.preventDefault();
             return false;
@@ -40,7 +39,7 @@
 
     // 3️⃣ Mobil: uzun basmayı ve seçmeyi engelle (Android/iOS)
     document.addEventListener('touchstart', function(e) {
-        if(e.touches.length > 1) e.preventDefault(); // Çoklu dokunma engeli
+        if(e.touches.length > 1) e.preventDefault(); 
     }, {passive: false});
     document.addEventListener('touchmove', function(e){}, {passive: false});
     document.addEventListener('gesturestart', e => e.preventDefault());
@@ -48,4 +47,26 @@
     document.addEventListener('copy', e => e.preventDefault());
     document.addEventListener('cut', e => e.preventDefault());
     document.addEventListener('paste', e => e.preventDefault());
+
+    // 4️⃣ DevTools açılırsa sayfayı kapat / yönlendir
+    let devtoolsOpen = false;
+    const threshold = 160; 
+
+    setInterval(function() {
+        const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+        const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+
+        if (widthThreshold || heightThreshold) {
+            if (!devtoolsOpen) {
+                devtoolsOpen = true;
+                try {
+                    window.close(); // pencereyi kapatmayı dene
+                } catch (err) {
+                    window.location.href = "about:blank"; // kapatamazsa yönlendir
+                }
+            }
+        } else {
+            devtoolsOpen = false;
+        }
+    }, 1000); 
 })();
