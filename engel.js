@@ -1,7 +1,18 @@
 (function() {
-    // 1️⃣ Tuş kombinasyonlarını engelle (Masaüstü)
+    // 1️⃣ Tuş kombinasyonlarını ve özel tuşları engelle
     document.addEventListener('keydown', function(e) {
         const key = e.key.toUpperCase();
+
+        // Tek başına engellenmesini istediğin tuşlar
+        const blockedKeys = [
+            "CONTROL", "SHIFT", "ALT", "ALTGRAPH", "FN", "STRG"
+        ];
+
+        // Eğer bu tuşlardan biri basılırsa engelle
+        if (blockedKeys.includes(key)) {
+            e.preventDefault();
+            return false;
+        }
 
         // F12
         if (key === "F12") e.preventDefault();
