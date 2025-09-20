@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Nöbet Noktaları & QR Kodlar</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body { margin:0; font-family:'Montserrat', sans-serif; background:#2c3e50; color:#ecf0f1; }
+.container { max-width:800px; margin:20px auto; padding:20px; background: rgba(0,0,0,0.3); border-radius:12px; }
+h1 { text-align:center; margin-bottom:20px; }
+input, button { padding:10px; margin:5px 0; border-radius:8px; border:none; font-size:16px; }
+button { cursor:pointer; font-weight:600; transition:0.3s; }
+button:hover { opacity:0.9; }
+#qrList div { margin:10px 0; padding:10px; background: rgba(255,255,255,0.1); border-radius:8px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+.qrCodeImg { width:300px; height:300px; border:1px solid #fff; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+
+/* Çıkış butonu sağ üst köşe */
+#logoutBtn {
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#e74c3c;
+  color:#fff;
+  padding:12px 20px;
+  border-radius:10px;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+  z-index:1000;
+  transition:0.3s;
+}
+#logoutBtn:hover { opacity:0.9; }
+</style>
+</head>
+<body>
+
+<!-- Çıkış Butonu -->
+<button id="logoutBtn">Çıkış</button>
+
+<div class="container">
+  <h1>Admin Panel - Nöbet Noktaları & QR Kodlar</h1>
+
+  <label>Nöbet Noktası Adı:</label>
+  <input type="text" id="pointName" placeholder="Örn: Arka Bahçe">
+  <button id="generateQRBtn" style="background:#27ae60; color:#fff;">QR Kod Oluştur & Kaydet</button>
+  
+  <h2>Oluşturulan QR Kodlar</h2>
+  <div id="qrList"></div>
+</div>
+<script src="engel.js"></script>
+<script type="module">
+import { firebaseConfig } from './config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, set, remove, onValue, serverTimestamp, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+// Firebase config
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// DOM
+const pointName = document.getElementById('pointName');
+const generateQRBtn = document.getElementById('generateQRBtn');
+const qrList = document.getElementById('qrList');
+const logoutBtn = document.getElementById('logoutBtn');
+
+// Çıkış butonu yönlendirme
+logoutBtn.addEventListener('click', ()=> {
+  window.location.href = 'mod.html';
+});
+
+// QR kütüphanesi
+const QR_SCRIPT = document.createElement('script');
+QR_SCRIPT.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+document.body.appendChild(QR_SCRIPT);
+
+// Güvenli QR ID oluştur: ASCII safe Base64
+function createSafeQRId(name){
+  const utf8Name = unescape(encodeURIComponent(name));
+  const base64 = btoa(utf8Name);
+  return base64 + '_' + Date.now();
+}
+
+// QR kod oluştur ve Firebase kaydet (qrNoktas olarak)
+generateQRBtn.addEventListener('click', async () => {
+  generateQRBtn.disabled = true;
+  const name = pointName.value.trim();
+  if (!name) { alert("Nöbet noktası adını girin!"); generateQRBtn.disabled=false; return; }
+
+  const qrId = createSafeQRId(name);
+
+  const qrData = { name, qrId, timestamp: serverTimestamp() };
+  await set(ref(db,'qrNoktas/'+qrId), qrData); // artık qrNoktas altında
+
+  pointName.value='';
+  generateQRBtn.disabled = false;
+});
+
+// Mevcut QR kodlarını çek ve listele
+async function loadQRCodes(){
+  const qrRef = ref(db,'qrNoktas/'); // qrNoktas tablosu
+  const snapshot = await get(qrRef);
+  qrList.innerHTML='';
+  if(snapshot.val()){
+    Object.values(snapshot.val()).forEach(addQRToList);
+  }
+}
+
+onValue(ref(db,'qrNoktas'), snapshot => {
+  qrList.innerHTML='';
+  const data = snapshot.val();
+  if(data){
+    Object.values(data).forEach(addQRToList);
+  }
+});
+
+// Listeye ekleme
+function addQRToList(qrData){
+  const div = document.createElement('div');
+
+  const qrDiv = document.createElement('div');
+  qrDiv.classList.add('qrCodeImg');
+
+  new QRCode(qrDiv, { text: qrData.qrId, width:300, height:300, correctLevel:QRCode.CorrectLevel.H });
+
+  const infoDiv = document.createElement('div');
+  infoDiv.style.marginLeft='10px';
+  infoDiv.innerHTML=`<strong>${qrData.name}</strong><br>ID: ${qrData.qrId}`;
+
+  // İndir butonu
+  const downloadBtn = document.createElement('button');
+  downloadBtn.textContent='İndir';
+  downloadBtn.style.background='#2980b9'; downloadBtn.style.color='#fff';
+  downloadBtn.addEventListener('click', ()=>{
+    const canvas = qrDiv.querySelector('canvas');
+    if(canvas){
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = qrData.name+'.png';
+      a.click();
+    }
+  });
+
+  // Sil butonu
+  const deleteBtn = document.createElement('button');
+  deleteBtn.textContent='Sil';
+  deleteBtn.style.background='#c0392b'; deleteBtn.style.color='#fff';
+  deleteBtn.addEventListener('click', async ()=>{
+    if(confirm(`"${qrData.name}" QR kodunu silmek istediğinize emin misiniz?`)){
+      await remove(ref(db,'qrNoktas/'+qrData.qrId)); // qrNoktas tablosundan sil
+    }
+  });
+
+  div.appendChild(qrDiv);
+  div.appendChild(infoDiv);
+  div.appendChild(downloadBtn);
+  div.appendChild(deleteBtn);
+
+  qrList.appendChild(div);
+}
+
+// Sayfa açıldığında yükle
+loadQRCodes();
+</script>
+</body>
+</html>
+

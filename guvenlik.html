@@ -1,0 +1,852 @@
+<!-- SENİN MEVCUT KODUN BAŞLIYOR -->
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CGA Güvenlik Sistemi - Güvenlik Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; font-family:'Montserrat', sans-serif; background: linear-gradient(135deg, #2c3e50, #34495e); color:#ecf0f1; overflow-x:hidden; }
+  .container { display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding:20px; transition: transform 0.3s ease; }
+  header { text-align:center; margin-bottom:20px; }
+  button { padding:12px 18px; margin:6px; border-radius:10px; border:none; cursor:pointer; font-weight:600; transition:0.3s; }
+  button:hover { opacity:0.9; }
+  #nobetAlBtn { background-color: #2980b9; color:#fff; }
+  #nobetBitirBtn { background-color: #c0392b; color:#fff; }
+  #devriyeStartBtn { background-color: #2980b9; color:#fff; }
+  #devriyeEndBtn { background-color: #c0392b; color:#fff; }
+  .status { margin:12px 0; padding:12px; background: rgba(0,0,0,0.2); border-radius:10px; width:100%; text-align:center; font-size:16px; }
+  .panel { background: rgba(255,255,255,0.05); padding:20px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,0.4); width:100%; margin-top:20px; }
+  .panel h2 { margin-top:0; text-align:center; }
+  .qr-list div { margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
+  .qr-list button.qrBtn { background-color: #7f8c8d; color:#fff; flex-shrink:0; width:120px; }
+  .qr-list button.qrBtn.read { background-color:#27ae60; }
+
+  input[type=date], input[type=text], input[type=password] { padding:6px; border-radius:8px; border:none; font-size:14px; }
+
+  /* Tek ikonlu sağ panel */
+  #historyToggleBtn {
+    position:fixed; top:20px; right:20px; background:#f39c12; color:#fff;
+    border:none; border-radius:50%; width:50px; height:50px;
+    font-size:24px; z-index:1001; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #historyPanel {
+    position:fixed; top:0; right:-100%;
+    width:320px; height:100%;
+    background: rgba(44,62,80,0.95);
+    color:#fff;
+    box-shadow: -6px 0 20px rgba(0,0,0,0.4);
+    padding:20px;
+    transition: right 0.3s ease;
+    overflow-y:auto;
+    z-index:1000;
+  }
+  #historyPanel h2 { text-align:center; margin-top:0; }
+
+  .profileIcon {
+    position:fixed; top:20px; left:20px; background:#16a085; color:#fff;
+    border:none; border-radius:50%; width:50px; height:50px;
+    font-size:24px; z-index:1001; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  @media (min-width:600px){
+    .container { max-width:600px; margin:auto; }
+  }
+
+  /* === QR KAMERA MODALI (Tam Ekran) === */
+  #qrScannerModal {
+    display:none; position:fixed; inset:0; background:#000; z-index:9999;
+ flex-direction:column; align-items:center; justify-content:center;
+    padding:16px;
+  }
+  #qr-reader { width:100%; max-width:520px; }
+  #closeScanner {
+    margin-top:20px; padding:12px 18px; border:none; border-radius:10px;
+    background:#c0392b; color:#fff; font-weight:700; cursor:pointer;
+  }
+
+  /* Kargo bildirimleri stili */
+  #kargoPanel { background: rgba(255,255,255,0.05); padding:20px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,0.4); width:100%; margin-top:20px; }
+  .kargo-item { display:flex; justify-content:space-between; align-items:center; background: rgba(0,0,0,0.2); padding:10px; border-radius:10px; margin-bottom:10px; }
+  .kargo-item button { background:#27ae60; color:#fff; border:none; padding:6px 12px; border-radius:8px; cursor:pointer; }
+  /* Tüm sayfa metinlerini seçilemez yap */
+body, div, span, p, h1, h2, h3, h4, h5, h6, label, input, button {
+    user-select: none;
+    -webkit-user-select: none; /* Safari/Chrome */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE/Edge */
+}
+
+</style>
+</head>
+<body>
+
+<!-- Profil ikonu -->
+<button class="profileIcon" id="profileBtn">&#128100;</button>
+
+<!-- Tek ikon: Devriye Geçmişi -->
+<button id="historyToggleBtn">&#128221;</button> <!-- Liste ikonu (📑) -->
+
+<div id="historyPanel">
+  <h2>Devriye Geçmişi</h2>
+  <label for="filterDate">Tarih Filtrele:</label>
+  <input type="date" id="filterDate">
+  <div id="devriyeHistory"></div>
+</div>
+
+<!-- Profil Modal -->
+<div id="profileModal" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background: rgba(30,30,30,0.95); padding:20px; border-radius:16px; box-shadow:0 6px 20px rgba(0,0,0,0.5); z-index:9999; width:90%; max-width:400px;">
+  <span id="profileClose" style="position:absolute; top:10px; right:10px; cursor:pointer; font-size:18px; color:#fff;">✖</span>
+  <h3 style="text-align:center;">Profil</h3>
+  
+  <label>Kullanıcı Adı (değiştirilemez)</label>
+  <input type="text" id="profileUsername" disabled style="width:100%; padding:8px; border-radius:8px; border:none; background:#333; color:#fff; font-weight:600;">
+  
+ <label>Eski Şifre</label>
+<div style="position:relative; width:100%; display:flex; align-items:center;">
+  <input type="password" id="oldPassword" style="flex:1; padding:8px 40px 8px 8px; border-radius:8px; border:none;">
+  <span class="togglePassword" data-target="oldPassword" style="position:absolute; right:8px; cursor:pointer;">👁️</span>
+</div>
+
+<label>Yeni Şifre</label>
+<div style="position:relative; width:100%; display:flex; align-items:center;">
+  <input type="password" id="newPassword" style="flex:1; padding:8px 40px 8px 8px; border-radius:8px; border:none;">
+  <span class="togglePassword" data-target="newPassword" style="position:absolute; right:8px; cursor:pointer;">👁️</span>
+</div>
+
+  
+  <label>Telefon Numarası</label>
+  <input type="text" id="phoneNumber" placeholder="+90..." style="width:100%; padding:8px; border-radius:8px; border:none;">
+  
+  <button id="updateProfileBtn" style="width:100%; padding:10px; margin-top:12px; border:none; border-radius:8px; background:#27ae60; color:#fff; font-weight:600;">Güncelle</button>
+  <button id="logoutBtn" style="width:100%; padding:10px; margin-top:8px; border:none; border-radius:8px; background:#c0392b; color:#fff; font-weight:600;">Çıkış</button>
+
+  <div id="profileMessage" style="margin-top:10px; font-size:14px;"></div>
+</div>
+
+<div class="container" id="mainContainer">
+  <header>
+    <h1>CGA Güvenlik Sistemi - Güvenlik Paneli</h1>
+  </header>
+
+  <!-- Nöbet -->
+  <button id="nobetAlBtn">Nöbeti Teslim Al</button>
+  <button id="nobetBitirBtn" disabled>Nöbeti Teslim Et</button>
+  <div class="status" id="nobetStatus">Henüz nöbette değilsiniz.</div>
+  <div id="nobetTimer" style="margin-top:8px; font-weight:bold;"></div>
+
+
+  <!-- Devriye -->
+  <div class="panel">
+    <h2>Devriye</h2>
+    <button id="devriyeStartBtn">Devriye Başlat</button>
+    <button id="devriyeEndBtn" disabled>Devriyeyi Bitir</button>
+	 <button id="olayBtn" style="background:#f39c12; color:#fff;">Olay Bildir</button> 
+	  <button id="kargoBtn" style="background:#e67e22; color:#fff; padding:12px 18px; border:none; border-radius:10px; margin-top:10px; font-weight:600; position:relative;">
+    Kargo Bildirimi
+    <span id="kargoBadge" style="
+        position:absolute;
+        top:-6px;
+        right:-6px;
+        background:#c0392b;
+        color:#fff;
+        font-size:12px;
+        font-weight:700;
+        padding:2px 6px;
+        border-radius:50%;
+    ">0</span>
+</button>
+
+
+    <div class="status" id="devriyeStatus">Devriye başlamadı.</div>
+
+    <h3>Devriye Noktaları</h3>
+    <div class="qr-list" id="qrListContainer"></div>
+  </div>
+
+ 
+
+<!-- === QR Kamerası Modalı === -->
+<div id="qrScannerModal">
+  <div id="qr-reader"></div>
+  <button id="closeScanner">Kapat</button>
+</div>
+<!-- Devriye uyarı modalı -->
+<div id="warningModal" style="
+    display:none;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    background: rgba(231, 76, 60, 0.95); /* hafif saydam kırmızı */
+    color: #fff;
+    padding: 16px 24px;
+    border-radius: 16px;
+    font-size: 15px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    z-index: 9999;
+    text-align: center;
+    max-width: 90%;
+    width: auto;
+    word-wrap: break-word;
+    line-height: 1.4;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+">
+  Devriyeye başlamadan önce nöbeti almalısınız!
+</div>
+
+
+<!-- Html5Qrcode (kameralı QR okuma) -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script src="engel.js"></script>
+<script type="module">
+import { firebaseConfig } from './config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, update, get } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+/* === Firebase === */
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const kargoBadge = document.getElementById('kargoBadge');
+const kargoRef = ref(db, 'kargoDeliveries');
+
+onValue(kargoRef, snapshot => {
+    const val = snapshot.val();
+    let pendingCount = 0;
+
+    if(val){
+        // Her daireyi ve altındaki kargoları dolaş
+        Object.values(val).forEach(apartment => {
+            Object.values(apartment).forEach(delivery => {
+                if(delivery.status === "Gönderildi"){
+                    pendingCount++;
+                }
+                // "Teslim Alındı" olanlar sayılmaz, otomatik rozetten düşer
+            });
+        });
+    }
+
+    kargoBadge.innerText = pendingCount;
+});
+
+
+
+/* === Session kontrol === */
+const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+if(!currentUser || currentUser.type!=='security'){
+  alert("Güvenlik kullanıcı ile giriş yapmalısınız!");
+  window.location.href="index.html";
+}
+ const activeDevriyeRef = ref(db,'activeDevriye/'+(currentUser.username || currentUser.name));
+// === Olay Bildir / Kargo Bildir için nöbet kontrolü ===
+async function checkActiveNobet(){
+    const snapshot = await get(nobetRecordsRef);
+    const val = snapshot.val();
+    if(val){
+        for(const rec of Object.values(val)){
+            if(rec.startBy === (currentUser.name || currentUser.username) && rec.status === 'started'){
+                return true; // Nöbet var
+            }
+        }
+    }
+    return false; // Nöbet yok
+}
+
+// Olay Bildir butonu
+olayBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const hasNobet = await checkActiveNobet();
+    if(!hasNobet){
+        showWarningModal("Olay Bildirmek için önce nöbeti almalısınız!");
+        return;
+    }
+    window.location.href = 'olay.html';
+});
+
+// Kargo Bildir butonu
+kargoBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const hasNobet = await checkActiveNobet();
+    if(!hasNobet){
+        showWarningModal("Kargo Bildirimlerini Görüntülemek için Önce nöbeti almalısınız!");
+        return;
+    }
+    window.location.href = 'kargog.html';
+});
+
+
+
+
+/* === Profil modal ve işlemleri === */
+const profileBtn = document.getElementById("profileBtn");
+const profileModal = document.getElementById("profileModal");
+const profileClose = document.getElementById("profileClose");
+const profileUsername = document.getElementById("profileUsername");
+const oldPassword = document.getElementById("oldPassword");
+const newPassword = document.getElementById("newPassword");
+const phoneNumber = document.getElementById("phoneNumber");
+const updateProfileBtn = document.getElementById("updateProfileBtn");
+const profileMessage = document.getElementById("profileMessage");
+const logoutBtn = document.getElementById("logoutBtn");
+oldPassword.addEventListener('input', ()=>{
+    oldPassword.value = oldPassword.value.toUpperCase();
+});
+newPassword.addEventListener('input', ()=>{
+    newPassword.value = newPassword.value.toUpperCase();
+});
+
+profileUsername.value = currentUser.name || currentUser.username || "";
+
+profileBtn.addEventListener('click', ()=>{ profileModal.style.display='block'; });
+profileClose.addEventListener('click', ()=>{ profileModal.style.display='none'; });
+
+updateProfileBtn.addEventListener('click', async ()=> {
+  profileMessage.innerText='';
+  if(!oldPassword.value && !newPassword.value && !phoneNumber.value) return;
+
+  const key = currentUser.username;
+  const userRef = ref(db, 'users/'+key);
+
+  const snapshot = await get(userRef);
+  const user = snapshot.val();
+  if(!user){ profileMessage.innerText="Kullanıcı bulunamadı."; return; }
+
+  if(oldPassword.value && oldPassword.value !== user.password){
+    profileMessage.innerText="Eski şifre hatalı!"; return;
+  }
+
+  const updates = {};
+  if(newPassword.value) updates.password = newPassword.value;
+  if(phoneNumber.value) updates.phone = phoneNumber.value;
+
+  await update(userRef, updates);
+  profileMessage.innerText="Profil başarıyla güncellendi!";
+  oldPassword.value=''; newPassword.value=''; phoneNumber.value='';
+  if(updates.password) currentUser.password = updates.password;
+  if(updates.phone) currentUser.phone = updates.phone;
+  sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+});
+// Şifre göster/gizle göz simgesi
+document.querySelectorAll('.togglePassword').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    const input = document.getElementById(el.dataset.target);
+    if(input.type === "password"){
+      input.type = "text";
+      el.innerText = "🙈"; // göz kapalı simgesi
+    } else {
+      input.type = "password";
+      el.innerText = "👁️"; // göz açık simgesi
+    }
+  });
+});
+phoneNumber.addEventListener('input', () => {
+    phoneNumber.value = phoneNumber.value.replace(/\D/g, ''); // sadece rakam bırak
+});
+
+
+logoutBtn.addEventListener('click', ()=>{
+  sessionStorage.removeItem('currentUser');
+  window.location.href = "index.html";
+});
+
+/* === Panel elemanları === */
+const nobetAlBtn = document.getElementById("nobetAlBtn");
+const nobetBitirBtn = document.getElementById("nobetBitirBtn");
+const nobetStatus = document.getElementById("nobetStatus");
+const devriyeStartBtn = document.getElementById("devriyeStartBtn");
+const devriyeEndBtn = document.getElementById("devriyeEndBtn");
+const devriyeStatus = document.getElementById("devriyeStatus");
+const devriyeHistoryEl = document.getElementById("devriyeHistory");
+const filterDate = document.getElementById("filterDate");
+const historyToggleBtn = document.getElementById("historyToggleBtn");
+const historyPanel = document.getElementById("historyPanel");
+const mainContainer = document.getElementById("mainContainer");
+const qrListContainer = document.getElementById('qrListContainer');
+
+nobetAlBtn.addEventListener('click', (e)=>{ 
+  e.stopImmediatePropagation(); // diğer click listenerları engeller
+  window.location.href = "nobet.html";
+});
+
+nobetBitirBtn.addEventListener('click', (e)=>{ 
+  e.stopImmediatePropagation();
+  window.location.href = "nobet.html";
+});
+
+
+const qrModal = document.getElementById('qrScannerModal');
+const qrReaderDivId = 'qr-reader';
+const closeScanner = document.getElementById('closeScanner');
+let qrScanner = null;
+
+let devriyeStarted = false;
+let devriyeStartTime = null;
+let readPoints = [];
+let allDevriyeHistory = [];
+
+// 2️⃣ Devriye durumunu dinleme
+onValue(activeDevriyeRef, snapshot => {
+    const val = snapshot.val();
+    if(val){
+        devriyeStarted = true;
+        devriyeStartTime = new Date(val.startTime);
+        readPoints = val.readPoints || [];
+        devriyeEndBtn.disabled = false;
+
+        startDevriyeTimer();
+        updateQRButtons(); // Bu sayede sayfa yenilenince QR kodlar yeşil olur
+    }
+});
+function updateQRButtons(){
+  document.querySelectorAll('.qrBtn').forEach(btn=>{
+    if(readPoints.includes(btn.dataset.point)){
+      btn.classList.add('read');
+      btn.nextElementSibling.innerText='Tamamlandı';
+    } else {
+      btn.classList.remove('read');
+      btn.nextElementSibling.innerText=btn.dataset.point;
+    }
+  });
+}
+
+
+let devriyeTimerInterval = null;
+
+function startDevriyeTimer(){
+  if(devriyeTimerInterval) clearInterval(devriyeTimerInterval);
+  devriyeTimerInterval = setInterval(()=>{
+    if(!devriyeStarted) return;
+    const now = new Date();
+    const diff = Math.floor((now - devriyeStartTime)/1000);
+    const h = String(Math.floor(diff/3600)).padStart(2,'0');
+    const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+    const s = String(diff%60).padStart(2,'0');
+    devriyeStatus.innerText = `🟢 Devriye Başladı | ⏱️${h}:${m}:${s}`;
+  },1000);
+}
+
+
+/* === Nöbet durumu (nobetRecords bazlı) === */
+const nobetRecordsRef = ref(db,'nobetRecords');
+onValue(nobetRecordsRef, snapshot=>{
+  const val = snapshot.val();
+  let activeRecord = null;
+
+  if(val){
+    Object.values(val).forEach(rec=>{
+      if(rec.startBy === (currentUser.name || currentUser.username) && rec.status==='started'){
+        activeRecord = rec;
+      }
+    });
+  }
+
+  let nobetTimerInterval = null;
+
+if(activeRecord){
+  nobetStatus.innerText = `👮 ${activeRecord.startBy} | 🧭 ${activeRecord.startPoint} - Nöbettesin`;
+  nobetAlBtn.disabled = true;
+  nobetBitirBtn.disabled = false;
+
+  // Sayaç
+  const startTime = new Date(activeRecord.startTime);
+  clearInterval(nobetTimerInterval);
+  nobetTimerInterval = setInterval(()=>{
+    const now = new Date();
+    const diff = Math.floor((now - startTime)/1000); // saniye
+    const h = String(Math.floor(diff/3600)).padStart(2,'0');
+    const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+    const s = String(diff%60).padStart(2,'0');
+    document.getElementById("nobetTimer").innerText = `⏱️ Süre: ${h}:${m}:${s}`;
+  },1000);
+
+} else {
+  nobetStatus.innerText = 'Henüz nöbette değilsiniz.';
+  document.getElementById("nobetTimer").innerText = '';
+  nobetAlBtn.disabled = false;
+  nobetBitirBtn.disabled = true;
+  clearInterval(nobetTimerInterval);
+}
+
+});
+
+/* === Nöbet al/bitir butonları === */
+nobetAlBtn.addEventListener('click', ()=>{ 
+  const newRecord = {
+    fromSecurity: currentUser.username || currentUser.name,
+    startBy: currentUser.name || currentUser.username,
+    startPoint: 'D BLOK', // opsiyonel, isteğe göre
+    startTime: new Date().toISOString(),
+    status: 'started'
+  };
+  push(nobetRecordsRef, newRecord);
+});
+
+nobetBitirBtn.addEventListener('click', ()=>{
+  // aktif nöbeti bul ve status'u değiştir
+  const valSnapshot = get(nobetRecordsRef);
+  valSnapshot.then(snapshot=>{
+    const val = snapshot.val();
+    if(val){
+      Object.entries(val).forEach(([key, rec])=>{
+        if(rec.startBy === (currentUser.name || currentUser.username) && rec.status==='started'){
+          update(ref(db,'nobetRecords/'+key), {status:'ended', endTime:new Date().toISOString()});
+        }
+      });
+    }
+  });
+});
+
+
+/* === Devriye Başlatma Kontrolü: Nöbet olmadan başlatılamaz === */
+// Modal fonksiyonu: script içinde herhangi bir yere ekle
+function showWarningModal(message, duration=3000){
+    const modal = document.getElementById('warningModal');
+    modal.innerText = message;
+    modal.style.display = 'block';
+    setTimeout(()=>{ modal.style.display = 'none'; }, duration);
+}
+
+// Devriye başlatma listener'ı (alert yerine modal)
+devriyeStartBtn.addEventListener('click', async () => {
+    const valSnapshot = await get(nobetRecordsRef);
+    const val = valSnapshot.val();
+    let activeNobet = null;
+
+    if(val){
+        Object.values(val).forEach(rec => {
+            if(rec.startBy === (currentUser.name || currentUser.username) && rec.status === 'started'){
+                activeNobet = rec;
+            }
+        });
+    }
+
+    if(!activeNobet){
+        showWarningModal("Devriyeye Başlamak İçin Önce Nöbeti Teslim Al");
+        return; 
+    }
+
+    if(devriyeStarted) return;
+
+    devriyeStarted = true;
+    devriyeStartTime = new Date();
+    devriyeEndBtn.disabled = false;
+    readPoints = [];
+	// 🔹 Firebase'e kaydet
+await set(activeDevriyeRef, {
+    startTime: devriyeStartTime.toISOString(),
+    readPoints: readPoints
+});
+
+    // Devriye başlangıç saati + sayaç
+    function updateDevriyeStatus(){
+        const now = new Date();
+        const diff = Math.floor((now - devriyeStartTime)/1000);
+        const h = String(Math.floor(diff/3600)).padStart(2,'0');
+        const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+        const s = String(diff%60).padStart(2,'0');
+        devriyeStatus.innerText = `🟢 Devriye Başladı | ⏱️${h}:${m}:${s}`;
+    }
+
+    updateDevriyeStatus();
+    const devriyeTimerInterval = setInterval(() => {
+        if(!devriyeStarted){
+            clearInterval(devriyeTimerInterval);
+            return;
+        }
+        updateDevriyeStatus();
+    }, 1000);
+
+    document.querySelectorAll('.qrBtn').forEach(btn => {
+        btn.classList.remove('read');
+        btn.nextElementSibling.innerText = btn.dataset.point;
+    });
+});
+
+
+
+
+devriyeEndBtn.addEventListener('click', async ()=> {
+    if(!devriyeStarted) return;
+
+    const totalPoints = document.querySelectorAll('.qrBtn').length;
+    const readCount = readPoints.length;
+if(readCount < totalPoints){
+    // Eksik devriye modal
+    showConfirmModal(
+        `Devriyeyi Bitirmek İstiyorsunuz. Fakat ${totalPoints - readCount} Nokta Eksik!`,
+        async () => { // "Devriyeyi Bitir" callback
+            await finishDevriye();
+        },
+        () => { /* Devriyeye Devam Et callback */ }
+    );
+    return;
+}
+
+
+    const devriyeEndTime = new Date();
+    let statusText = readCount === totalPoints ? "Tam devriye" : "Eksik devriye";
+    const weekday = devriyeStartTime.toLocaleDateString('tr-TR',{ weekday:'long' });
+    const dateText = `${devriyeStartTime.toLocaleDateString()} (${weekday.charAt(0).toUpperCase()+weekday.slice(1)})`;
+
+    const devriyeRecord = {
+        user: currentUser.username || currentUser.name,
+        name: currentUser.name || currentUser.username,
+        date: devriyeStartTime.toISOString().split('T')[0],
+        displayDate: dateText,
+        start: devriyeStartTime.toLocaleTimeString(),
+        end: devriyeEndTime.toLocaleTimeString(),
+        status: statusText,
+        points:[...readPoints],
+        timestamp: Date.now()
+    };
+
+    const userDevriyeRef = ref(db,'devriyeHistory/'+(currentUser.username || currentUser.name));
+
+    const snapshot = await get(userDevriyeRef);
+    const allRecords = snapshot.exists() ? Object.entries(snapshot.val()) : [];
+
+    if(allRecords.length >= 1000){
+        allRecords.sort((a,b) => (a[1].timestamp || 0) - (b[1].timestamp || 0));
+        const oldestKey = allRecords[0][0];
+        await set(ref(db,'devriyeHistory/'+(currentUser.username || currentUser.name)+'/'+oldestKey), null);
+    }
+
+    await push(userDevriyeRef, devriyeRecord);
+
+    await set(activeDevriyeRef, null);
+    devriyeStarted = false;
+    devriyeEndBtn.disabled = true;
+    devriyeStatus.innerText = 'Devriye tamamlandı.';
+    document.querySelectorAll('.qrBtn').forEach(btn=>{ btn.classList.remove('read'); btn.nextElementSibling.innerText=btn.dataset.point; });
+});
+
+
+
+/* === Devriye geçmişini dinle === */
+onValue(ref(db,'devriyeHistory/'+(currentUser.username || currentUser.name)), snapshot=>{
+  const val = snapshot.val();
+  allDevriyeHistory = val ? Object.values(val).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0)) : [];
+  renderDevriyeHistory();
+});
+
+function renderDevriyeHistory(){
+  const selectedDate = filterDate.value;
+  devriyeHistoryEl.innerHTML='';
+  const filtered = selectedDate ? allDevriyeHistory.filter(d=>d.date===selectedDate):allDevriyeHistory;
+  filtered.forEach(d=>{
+    const item=document.createElement('div');
+    item.classList.add('devriye-item');
+    item.style.marginBottom='10px';
+    item.style.padding='10px';
+    item.style.background='rgba(44,62,80,0.6)';
+    item.style.borderRadius='10px';
+    item.style.fontSize='14px';
+   item.innerHTML=`<strong>Tarih:</strong> ${d.displayDate}<br>
+                <strong>Blok:</strong> ${d.block || 'Bilinmiyor'}<br>
+                <strong>Başlangıç:</strong> ${d.start}<br>
+                <strong>Bitiş:</strong> ${d.end}<br>
+                <strong>Durum:</strong> ${d.status}<br>
+                <strong>Noktalar:</strong> ${Array.isArray(d.points)?d.points.join(', '):''}`;
+    devriyeHistoryEl.appendChild(item);
+  });
+}
+filterDate.addEventListener('change', renderDevriyeHistory);
+
+/* === Sağ panel aç/kapa === */
+historyToggleBtn.addEventListener('click', ()=>{
+  if(historyPanel.style.right==='0px'){
+    historyPanel.style.right='-100%';
+    mainContainer.style.transform='translateX(0)';
+  } else {
+    historyPanel.style.right='0';
+    mainContainer.style.transform='translateX(-320px)';
+  }
+});
+
+/* === QR SCANNER === */
+function hasCameraLib(){ return typeof Html5Qrcode !== 'undefined'; }
+
+async function startScanner(pointName, btnEl){
+  if(!devriyeStarted){ alert("Önce devriyeyi başlatın!"); return; }
+  if(!hasCameraLib()){ alert("QR kütüphanesi yüklenemedi!"); return; }
+  qrModal.style.display='flex';
+
+  if(qrScanner) qrScanner.clear();
+  qrScanner = new Html5Qrcode(qrReaderDivId);
+
+  qrScanner.start(
+    { facingMode:"environment" },
+    { fps:10, qrbox:250 },
+    qrCodeMessage => {
+      const qrId = qrCodeMessage.trim();
+      if(qrId === btnEl.dataset.qrid){
+        btnEl.classList.add('read');
+        btnEl.nextElementSibling.innerText='Tamamlandı';
+        if(!readPoints.includes(pointName)) readPoints.push(pointName);
+        qrScanner.stop();
+        qrModal.style.display='none';
+      } else {
+        alert("QR kod eşleşmedi!");
+      }
+    },
+    err=>{ /* console.log(err) */ }
+  ).catch(err=>{ alert("Kamera açılamadı: "+err); });
+}
+
+closeScanner.addEventListener('click', ()=>{
+  if(qrScanner) qrScanner.stop();
+  qrModal.style.display='none';
+});
+
+/* === Firebase'den dinamik QR noktalarını çek (mobil uyumlu) === */
+async function loadQRPoints() {
+    try {
+        // 1️⃣ Nöbetin başlama noktasını al
+        const nobetSnapshot = await get(nobetRecordsRef);
+        let startPoint = null;
+        if(nobetSnapshot.exists()){
+            const records = nobetSnapshot.val();
+            for(const rec of Object.values(records)){
+                if(rec.startBy === (currentUser.name || currentUser.username) && rec.status==='started'){
+                    startPoint = rec.startPoint.trim();
+                    break;
+                }
+            }
+        }
+
+        // 2️⃣ Firebase'de startPoint + 'qrcodes' var mı kontrol et
+        let pointsRef = startPoint ? ref(db, `${startPoint}qrcodes`) : null;
+        let snapshot = pointsRef ? await get(pointsRef) : null;
+        let pointsData = snapshot && snapshot.exists() ? snapshot.val() : null;
+
+        // 3️⃣ Eğer yoksa genel qrCodes kullan (cache'i bypass etmek için timestamp)
+        if(!pointsData){
+            pointsRef = ref(db,'qrCodes');
+            snapshot = await get(pointsRef);
+            pointsData = snapshot.exists() ? snapshot.val() : {};
+        }
+
+        // 4️⃣ Listeyi ekrana bas
+        qrListContainer.innerHTML = '';
+        Object.values(pointsData).forEach(point=>{
+            const div = document.createElement('div');
+            const btn = document.createElement('button');
+            btn.classList.add('qrBtn');
+            btn.dataset.qrid = point.qrId;
+            btn.dataset.point = point.name;
+            btn.innerText = "QR Okut";
+
+            const span = document.createElement('span');
+            span.innerText = point.name;
+
+            div.appendChild(btn);
+            div.appendChild(span);
+            qrListContainer.appendChild(div);
+
+            btn.addEventListener('click', ()=>{ startScanner(point.name, btn); });
+        });
+    } catch(err){
+        console.error("QR noktaları yüklenirken hata:", err);
+        alert("QR noktaları yüklenemedi! İnternet bağlantınızı kontrol edin.");
+    }
+}
+
+// Sayfa yüklendiğinde çağır
+document.addEventListener('DOMContentLoaded', loadQRPoints);
+// Devriyeyi bitirme işlemi
+async function finishDevriye(){
+    const devriyeEndTime = new Date();
+    const totalPoints = document.querySelectorAll('.qrBtn').length;
+    const readCount = readPoints.length;
+    let statusText = readCount === totalPoints ? "Tam devriye" : "Eksik devriye";
+    const weekday = devriyeStartTime.toLocaleDateString('tr-TR',{ weekday:'long' });
+    const dateText = `${devriyeStartTime.toLocaleDateString()} (${weekday.charAt(0).toUpperCase()+weekday.slice(1)})`;
+
+    // 🟢 Blok bilgisini ekle
+    let blockName = 'Bilinmiyor';
+    const nobetSnapshot = await get(nobetRecordsRef);
+    if(nobetSnapshot.exists()){
+        const records = nobetSnapshot.val();
+        for(const rec of Object.values(records)){
+            if(rec.startBy === (currentUser.name || currentUser.username) && rec.status==='started'){
+                blockName = rec.startPoint || 'Bilinmiyor';
+                break;
+            }
+        }
+    }
+
+    const devriyeRecord = {
+        user: currentUser.username || currentUser.name,
+        name: currentUser.name || currentUser.username,
+        block: blockName, // 🔹 burası eklendi
+        date: devriyeStartTime.toISOString().split('T')[0],
+        displayDate: dateText,
+        start: devriyeStartTime.toLocaleTimeString(),
+        end: devriyeEndTime.toLocaleTimeString(),
+        status: statusText,
+        points:[...readPoints],
+        timestamp: Date.now()
+    };
+
+    const userDevriyeRef = ref(db,'devriyeHistory/'+(currentUser.username || currentUser.name));
+    await push(userDevriyeRef, devriyeRecord);
+    await set(activeDevriyeRef, null);
+
+    devriyeStarted = false;
+    devriyeEndBtn.disabled = true;
+    devriyeStatus.innerText = 'Devriye tamamlandı.';
+    document.querySelectorAll('.qrBtn').forEach(btn=>{
+        btn.classList.remove('read'); 
+        btn.nextElementSibling.innerText=btn.dataset.point;
+    });
+
+}
+
+// Modal gösterme fonksiyonu
+function showConfirmModal(message, onConfirm, onCancel){
+    let modal = document.getElementById('confirmModal');
+    if(!modal){
+        modal = document.createElement('div');
+        modal.id = 'confirmModal';
+        modal.style.cssText = `
+            display:flex; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+            background: rgba(231,76,60,0.95); color:#fff; padding:20px; border-radius:16px;
+            box-shadow:0 8px 24px rgba(0,0,0,0.4); z-index:9999; flex-direction:column;
+            max-width:90%; width:auto; text-align:center;
+        `;
+        const msgEl = document.createElement('div'); msgEl.id='confirmMessage'; msgEl.style.marginBottom='16px';
+        modal.appendChild(msgEl);
+
+        const btnContainer = document.createElement('div'); btnContainer.style.display='flex'; btnContainer.style.justifyContent='space-around';
+const btnFinish = document.createElement('button');
+btnFinish.innerText = 'Devriyeyi Bitir';
+btnFinish.style.cssText = 'background:#f1c40f;color:#000;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
+btnFinish.addEventListener('click', ()=>{ onConfirm(); modal.style.display='none'; });
+
+const btnContinue = document.createElement('button');
+btnContinue.innerText = 'Devriyeye Devam Et';
+btnContinue.style.cssText = 'background:#27ae60;color:#fff;padding:8px 16px;border:none;border-radius:8px;cursor:pointer;font-weight:600;';
+btnContinue.addEventListener('click', ()=>{ onCancel(); modal.style.display='none'; });
+
+
+
+        btnContainer.appendChild(btnFinish);
+        btnContainer.appendChild(btnContinue);
+        modal.appendChild(btnContainer);
+
+        document.body.appendChild(modal);
+    }
+    document.getElementById('confirmMessage').innerText = message;
+    modal.style.display='flex';
+}
+
+
+</script>
+</body>
+</html>

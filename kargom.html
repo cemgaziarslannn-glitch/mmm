@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kargo Bildirimi - Site Sakini</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body {
+  margin:0;
+  font-family:'Montserrat',sans-serif;
+  background:#1f2a38;
+  color:#ecf0f1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:20px;
+}
+h1 { margin-bottom:20px; }
+input, textarea, button {
+  width:90%; max-width:400px;
+  padding:10px; margin-bottom:10px;
+  border-radius:12px; border:none;
+  text-transform:uppercase;
+}
+textarea { height:80px; resize:none; }
+button { cursor:pointer; font-weight:600; }
+#sendBtn { background:#27ae60; color:#fff; }
+#sendBtn:hover { background:#2ecc71; }
+
+#exitBtn {
+  position: fixed;
+  top: 16px;      /* üstten 16px */
+  right: 16px;    /* sağdan 16px */
+  width: 48px;
+  height: 48px;
+  background: #e67e22;
+  border: none;
+  border-radius: 8px;       /* hafif köşeli kare */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s;
+  z-index: 1000;
+}
+#exitBtn:hover {
+  background: #d35400;
+  transform: scale(1.1);
+}
+#exitBtn svg {
+  fill: #fff;
+}
+
+
+#cargoStatus {
+  width:90%; max-width:400px;
+  margin-top:20px;
+  max-height:500px; overflow-y:auto;
+}
+.message-item {
+  background: rgba(255,255,255,0.1);
+  padding:10px;
+  border-radius:12px;
+  margin-bottom:10px;
+  position:relative;
+}
+.message-info { flex:1; }
+.countdown {
+  margin-top:5px;
+  font-size:0.9rem;
+  color:#f1c40f;
+}
+.message-buttons {
+  position:absolute;
+  top:8px;
+  right:8px;
+}
+.message-buttons button {
+  background:#c0392b; color:#fff;
+  border:none; padding:4px 8px;
+  border-radius:8px; cursor:pointer;
+  font-size:12px;
+}
+.message-buttons button:hover { background:#e74c3c; }
+
+/* Telefon modal */
+#phoneModal {
+  display:none;
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+}
+#phoneModal .modal-content {
+  background:#2c3e50;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  max-width:400px;
+  width:90%;
+}
+#phoneModal .modal-content p { margin-bottom:20px; }
+#phoneModal button {
+  margin:5px;
+  padding:10px 14px;
+  border-radius:8px;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+}
+#enterPhone { background:#2980b9; color:#fff; }
+#skipPhone { background:#27ae60; color:#fff; }
+#enterPhone:hover { background:#3498db; }
+#skipPhone:hover { background:#2ecc71; }
+
+/* Duplicate modal */
+#duplicateModal {
+  display:none;
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+}
+#duplicateModal .modal-content {
+  background:#2c3e50;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  max-width:400px;
+  width:90%;
+}
+#duplicateModal button {
+  background:#e67e22;
+  color:#fff;
+  border:none;
+  padding:10px 14px;
+  border-radius:8px;
+  font-weight:600;
+  cursor:pointer;
+}
+#duplicateModal button:hover { background:#d35400; }
+
+/* Eksik alan modal */
+#missingFieldsModal {
+  display:none;
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;
+  align-items:center;
+}
+#missingFieldsModal .modal-content {
+  background:#2c3e50;
+  padding:20px;
+  border-radius:12px;
+  text-align:center;
+  max-width:400px;
+  width:90%;
+}
+#missingFieldsModal button {
+  background:#e67e22;
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  border-radius:6px;
+  font-weight:600;
+  cursor:pointer;
+}
+#missingFieldsModal button:hover { background:#d35400; }
+</style>
+</head>
+<body>
+
+<h1>Kargo Bildirimi Gönder</h1>
+<button id="exitBtn">Çıkış</button>
+<input type="text" id="company" placeholder="Kargo Firması">
+<input type="text" id="deliveryCode" placeholder="Teslimat Kodu">
+<input type="text" id="phone" placeholder="Telefon Numaranız">
+<textarea id="note">Kargomu Alabirmisiniz?</textarea>
+<button id="sendBtn">Gönder</button>
+
+<h2>Kargo Durumu</h2>
+<div id="cargoStatus"></div>
+
+<!-- Telefon modal -->
+<div id="phoneModal">
+  <div class="modal-content">
+    <p>Telefon numarası girmediniz. Kargo ile ilgili bir sorun çıktığında güvenliğin size ulaşabilmesi için lütfen telefon numaranızı giriniz.</p>
+    <button id="enterPhone">Telefon Numarası Girmek İstiyorum</button>
+    <button id="skipPhone">Numara Girmeden Devam Et</button>
+  </div>
+</div>
+
+<!-- Duplicate modal -->
+<div id="duplicateModal">
+  <div class="modal-content">
+    <p>Bu bildirimi daha önce gönderdiniz! Teslim alınmamış bir bildirim zaten mevcut.</p>
+    <button id="closeDuplicate">Tamam</button>
+  </div>
+</div>
+
+<!-- Eksik alan modal -->
+<div id="missingFieldsModal">
+  <div class="modal-content">
+    <p>Lütfen firma ve teslimat kodunu giriniz!</p>
+    <button id="closeMissingFields">Tamam</button>
+  </div>
+</div>
+<script src="engel.js"></script>
+<script type="module">
+import { firebaseConfig } from './config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove, get, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+
+let storedUser = sessionStorage.getItem("currentUser");
+let currentUser = storedUser ? JSON.parse(storedUser).username : null;
+if(!currentUser){
+  alert("Lütfen önce giriş yapın!");
+  window.location.href="index.html";
+}
+
+const companyInput = document.getElementById('company');
+const deliveryCodeInput = document.getElementById('deliveryCode');
+const phoneInput = document.getElementById('phone');
+const noteInput = document.getElementById('note');
+const sendBtn = document.getElementById('sendBtn');
+const exitBtn = document.getElementById('exitBtn');
+const cargoStatus = document.getElementById('cargoStatus');
+
+const phoneModal = document.getElementById('phoneModal');
+const enterPhoneBtn = document.getElementById('enterPhone');
+const skipPhoneBtn = document.getElementById('skipPhone');
+
+const duplicateModal = document.getElementById('duplicateModal');
+const closeDuplicate = document.getElementById('closeDuplicate');
+
+const missingFieldsModal = document.getElementById('missingFieldsModal');
+const closeMissingFields = document.getElementById('closeMissingFields');
+
+closeDuplicate.addEventListener('click', ()=>{ duplicateModal.style.display='none'; });
+closeMissingFields.addEventListener('click', ()=>{ missingFieldsModal.style.display='none'; });
+
+exitBtn.addEventListener('click', ()=>{ window.location.href = "site.html"; });
+
+sendBtn.addEventListener('click', async ()=>{
+  const company = companyInput.value.trim().toUpperCase();
+  const deliveryCode = deliveryCodeInput.value.trim().toUpperCase();
+  const phone = phoneInput.value.trim();
+  let note = noteInput.value.trim() || "Kargomu Alabirmisiniz?";
+
+  if(!company || !deliveryCode){ 
+    missingFieldsModal.style.display = 'flex';
+    return; 
+  }
+
+  if(!phone){
+    phoneModal.style.display='flex';
+    return;
+  }
+
+  await addDelivery(company, deliveryCode, phone, note);
+});
+
+enterPhoneBtn.addEventListener('click', ()=>{ phoneModal.style.display='none'; phoneInput.focus(); });
+skipPhoneBtn.addEventListener('click', async ()=>{
+  phoneModal.style.display='none';
+  const company = companyInput.value.trim().toUpperCase();
+  const deliveryCode = deliveryCodeInput.value.trim().toUpperCase();
+  let note = noteInput.value.trim() || "Kargomu Alabilirmisiniz?";
+  await addDelivery(company, deliveryCode, '', note);
+});
+
+async function addDelivery(company, deliveryCode, phone, note){
+  const apartmentRef = ref(db,'kargoDeliveries/'+currentUser);
+  const snapshot = await get(apartmentRef);
+  const val = snapshot.val();
+  let userNotifications = val ? Object.keys(val).map(k=>({id:k, ...val[k]})).sort((a,b)=>new Date(a.date)-new Date(b.date)) : [];
+
+  const duplicate = userNotifications.find(m=>m.company===company && m.deliveryCode===deliveryCode && m.status!=='Teslim Alındı');
+  if(duplicate){
+    duplicateModal.style.display='flex';
+    return;
+  }
+
+  while(userNotifications.length >=10){
+    const oldest = userNotifications.shift();
+    await remove(ref(db,'kargoDeliveries/'+currentUser+'/'+oldest.id));
+  }
+
+  await push(apartmentRef,{
+    apartment: currentUser,
+    company,
+    deliveryCode,
+    phone,
+    note,
+    status:'Gönderildi',
+    receivedBy:'',
+    date: new Date().toISOString(),
+    countdownStart: null
+  });
+
+  companyInput.value=''; deliveryCodeInput.value=''; noteInput.value='Kargomu Alabilirmisiniz?'; phoneInput.value='';
+}
+
+onValue(ref(db,'kargoDeliveries/'+currentUser), snapshot=>{
+  const val = snapshot.val();
+  cargoStatus.innerHTML='';
+
+  if(val){
+    Object.keys(val)
+      .map(k=>({id:k, ...val[k]}))
+      .sort((a,b)=>new Date(b.date)-new Date(a.date))
+      .forEach(m=>{
+        const div = document.createElement('div');
+        div.classList.add('message-item');
+        div.id = `message-${m.id}`;
+
+        let messageText = "Güvenliğe Bildirim Gönderildi";
+        let showDelete = false;
+        if(m.status === "Teslim Alındı"){
+          messageText = `Teslim Alan Güvenlik : ${m.receivedBy || '-'}`;
+          showDelete = true;
+        }
+
+        div.innerHTML = `
+          <div class="message-info">
+            <strong>${m.company}</strong> (${m.deliveryCode})<br>
+            Daire: ${m.apartment}<br>
+            ${messageText}<br>
+            Not: ${m.note||'-'}
+          </div>
+          <div class="countdown" id="countdown-${m.id}"></div>
+          <div class="message-buttons" id="buttons-${m.id}"></div>
+        `;
+        cargoStatus.appendChild(div);
+
+        if(showDelete){
+          const btnDiv = document.getElementById(`buttons-${m.id}`);
+          const deleteBtn = document.createElement('button');
+          deleteBtn.innerText='Sil';
+          deleteBtn.onclick = async ()=> { await remove(ref(db,'kargoDeliveries/'+currentUser+'/'+m.id)); };
+          btnDiv.appendChild(deleteBtn);
+        }
+
+        if(m.status === "Teslim Alındı"){
+          if(!m.countdownStart){
+            update(ref(db,'kargoDeliveries/'+currentUser+'/'+m.id),{ countdownStart: new Date().toISOString() });
+          }
+          startCountdown(m.id, m.countdownStart || new Date().toISOString());
+        }
+      });
+  }
+});
+
+function startCountdown(kargoId, countdownStart){
+  const countdownDiv = document.getElementById(`countdown-${kargoId}`);
+  const endTime = new Date(countdownStart).getTime() + 36*60*60*1000;
+
+  const interval = setInterval(async ()=>{
+    const now = new Date().getTime();
+    const distance = endTime - now;
+
+    if(distance <=0){
+      clearInterval(interval);
+      await remove(ref(db,'kargoDeliveries/'+currentUser+'/'+kargoId));
+      if(countdownDiv){ countdownDiv.innerText = "Bildirim Otomatik Silinecek"; }
+      return;
+    }
+
+    const hours = Math.floor(distance / (1000*60*60));
+    const minutes = Math.floor((distance % (1000*60*60)) / (1000*60));
+    const seconds = Math.floor((distance % (1000*60)) / 1000);
+
+    if(countdownDiv){
+      countdownDiv.innerText = `Bildirim Otomatik Silinecek: ${hours} saat ${minutes} dakika ${seconds} saniye`;
+    }
+  },1000);
+}
+</script>
+</body>
+</html>

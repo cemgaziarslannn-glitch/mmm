@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stabil Admin Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+body {margin:0; font-family:'Roboto',sans-serif; background:#1f2a38; color:#e0e0e0; min-height:100vh; padding:30px; display:flex; justify-content:center;}
+.panel-wrapper {width:95%; max-width:1200px; display:grid; grid-template-columns: 1fr 1fr; gap:20px;}
+.panel {background:#222f3e; border-radius:15px; padding:20px; box-shadow:0 10px 25px rgba(0,0,0,0.5); transition:0.3s;}
+.panel:hover {transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.6);}
+.panel h2 {margin-top:0; margin-bottom:15px; color:#ffcc00; border-bottom:1px solid rgba(255,255,255,0.2); padding-bottom:5px;}
+input, select {width:100%; padding:10px; margin:6px 0; border-radius:10px; border:none; background:#1a2b3a; color:#fff;}
+input:focus, select:focus {outline:none; box-shadow:0 0 10px #ffcc00;}
+button {padding:10px 18px; border:none; border-radius:12px; font-weight:500; cursor:pointer; transition:0.3s; margin-top:8px;}
+button:hover {opacity:0.85;}
+#createUserBtn {background:#27ae60; color:#fff;}
+.bulkBtn {background:#3498db; color:#fff; margin-right:5px;}
+#bulkDeleteBtn {background:#e74c3c; color:#fff;}
+.delete {background:#e74c3c; color:#fff; margin-right:5px;}
+.edit {background:#9b59b6; color:#fff;}
+table {width:100%; border-collapse:collapse; margin-top:10px;}
+th, td {padding:12px; text-align:left; background:#1a2b3a; border-bottom:1px solid rgba(255,255,255,0.15); transition:0.2s;}
+th {background:#2c3e50; color:#ffcc00; text-transform:uppercase;}
+tr:hover {background: rgba(52,152,219,0.2);}
+header {grid-column: span 2; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;}
+header h1 {color:#ffcc00; margin:0; font-size:2rem;}
+header button {background:#e67e22; color:#fff;}
+#createMsg, #bulkMsg, #searchMsg, #devriyeMsg {margin-top:8px; color:#2ecc71; font-weight:500;}
+.modal {display:none; position:fixed; z-index:999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center;}
+.modal-content {background:#1f2a38; padding:20px; border-radius:12px; width:320px; display:flex; flex-direction:column; gap:10px;}
+.modal-content input {margin:0;}
+.modal-content button {margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="panel-wrapper">
+
+<header>
+  <h1>STABIL ADMIN PANELİ</h1>
+  <div>
+  <button id="depoBtn" style="background:#16a085; color:#fff;">DEPO</button> <!-- Yeni Buton -->
+    <button id="noktaBtn" style="background:#8e44ad; color:#fff; margin-right:10px;">NOKTA EKLE</button>
+    <button id="devriyeBtn" style="background:#2980b9; color:#fff; margin-right:10px;">DEVRIYE EKLE</button>
+    <button id="logoutBtn" style="margin-right:10px;">ÇIKIŞ</button>
+  </div>
+</header>
+
+
+<div class="panel">
+<h2>YENİ KULLANICI OLUŞTUR</h2>
+<select id="newType">
+  <option value="resident">SITE SAKİNİ</option>
+  <option value="security">GÜVENLİK</option>
+  <option value="admin">ADMIN</option>
+  <option value="company">ŞİRKET</option> <!-- Yeni seçenek -->
+</select>
+
+
+<div id="residentFields">
+  <select id="newBlock">
+    <option value="">BLOK SEÇ (OPSİYONEL)</option>
+    <option value="A">A</option>
+    <option value="B">B</option>
+    <option value="C">C</option>
+    <option value="D">D</option>
+    <option value="E">E</option>
+    <option value="F">F</option>
+    <option value="G">G</option>
+    <option value="H">H</option>
+    <option value="I">I</option>
+  </select>
+  <input type="text" id="newSite" placeholder="Site / Apartman Adı (Opsiyonel)">
+  <input type="text" id="newApartment" placeholder="Daire Numarası / Kullanıcı Adı">
+  <input type="text" id="newPhone" placeholder="Telefon">
+</div>
+
+<div id="otherFields">
+  <input type="text" id="newUsername" placeholder="Kullanıcı Adı">
+  <input type="text" id="newPhoneOther" placeholder="Telefon">
+</div>
+
+<button id="createUserBtn">OLUŞTUR</button>
+<div id="createMsg"></div>
+</div>
+
+<div class="panel">
+<h2>TOPLU SITE SAKİN İŞLEMLERİ</h2>
+<select id="bulkBlock">
+  <option value="">BLOK SEÇ (OPSİYONEL)</option>
+  <option value="A">A</option>
+  <option value="B">B</option>
+  <option value="C">C</option>
+  <option value="D">D</option>
+  <option value="E">E</option>
+  <option value="F">F</option>
+  <option value="G">G</option>
+  <option value="H">H</option>
+  <option value="I">I</option>
+</select>
+<input type="text" id="bulkSite" placeholder="Site / Apartman Adı (Opsiyonel)">
+<div>
+<button class="bulkBtn" data-count="50">50 EKLE</button>
+<button class="bulkBtn" data-count="100">100 EKLE</button>
+<button class="bulkBtn" data-count="150">150 EKLE</button>
+<button class="bulkBtn" data-count="200">200 EKLE</button>
+<button class="bulkBtn" data-count="250">250 EKLE</button>
+<button class="bulkBtn" data-count="300">300 EKLE</button>
+<button id="bulkDeleteBtn">TOPLU SİL</button>
+</div>
+<div id="bulkMsg"></div>
+</div>
+
+<div class="panel">
+<h2>KULLANICI ARA</h2>
+<input type="text" id="searchInput" placeholder="Daire Numarası veya Kullanıcı Adı">
+<button id="searchBtn">ARA</button>
+<div id="searchMsg"></div>
+</div>
+
+<div class="panel" style="grid-column: span 2;">
+<h2>TÜM KULLANICILAR</h2>
+<div id="userSummary" style="
+  margin:15px; 
+  padding:10px; 
+  background:#2c3e50;  /* koyu mavi */
+  color:#ffcc00;        /* sarı yazı */
+  border-radius:8px; 
+  font-weight:600;
+  font-size:16px;
+">
+  Yükleniyor...
+</div>
+
+
+<select id="userFilter" style="margin-bottom:10px;">
+<option value="all">TÜMÜ</option>
+<option value="security">GÜVENLİK</option>
+<option value="resident">SITE SAKİNİ</option>
+<option value="admin">ADMIN</option>
+</select>
+<table>
+<thead>
+<tr><th>Daire Numarası</th><th>Blok / Site</th><th>Tip</th><th>Şifre</th><th>Telefon</th><th>İşlem</th></tr>
+</thead>
+<tbody id="usersTable"></tbody>
+</table>
+</div>
+
+<div class="panel">
+<h2>DEVRIYE İŞLEMLERİ</h2>
+<button id="resetDevriyeBtn">SIFIRLA</button>
+<button id="exportDevriyeBtn">DIŞA AKTAR</button>
+<div id="devriyeMsg"></div>
+</div>
+
+</div>
+
+<div id="editModal" class="modal">
+<div class="modal-content">
+<h3>DÜZENLE</h3>
+<label>Kullanıcı Adı</label>
+<input type="text" id="editApartment" disabled>
+<label>Şifre</label>
+<input type="text" id="editPassword">
+<label>Telefon</label>
+<input type="text" id="editPhone">
+<button id="saveEditBtn">KAYDET</button>
+<button id="closeEditBtn">KAPAT</button>
+</div>
+</div>
+<script src="engel.js"></script>
+<script type="module">
+import { firebaseConfig } from './config.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import { getDatabase, ref, set, remove, onValue, get, update } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
+
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+if(!currentUser || currentUser.type.toLowerCase()!=="admin"){ alert("Yetkisiz erişim!"); window.location.href="index.html";}
+
+document.getElementById('logoutBtn').addEventListener('click', ()=> {sessionStorage.removeItem('currentUser'); window.location.href='index.html';});
+document.getElementById('devriyeBtn').addEventListener('click', () => {window.location.href = 'devriye.html';});
+
+// ✅ NOKTA EKLE Butonuna tıklama
+document.getElementById('noktaBtn').addEventListener('click', () => {
+  window.location.href = 'nokta.html';
+});
+
+const usersTable = document.getElementById('usersTable');
+let allUsers = {};
+
+function mapType(type) {
+  if (type === "resident") return "SITE SAKİNİ";
+  if (type === "security") return "GÜVENLİK";
+  if (type === "admin") return "ADMIN";
+  return type;
+}
+
+// Kullanıcıları listele ve özet alanını güncelle
+function listUsers(filter="all") {
+  const usersRef = ref(db,'users');
+  onValue(usersRef, snapshot => {
+    const val = snapshot.val() || {};
+    allUsers = val;
+    usersTable.innerHTML = "";
+
+    // 🔥 Sayaçları tanımla
+    let sakiniCount = 0, guvenlikCount = 0, amirCount = 0;
+
+    Object.values(val)
+      .filter(u => filter === "all" || u.type === filter)
+      .sort((a,b) => {
+        const numA = parseInt((a.username||"").replace(/\D/g,'')||0);
+        const numB = parseInt((b.username||"").replace(/\D/g,'')||0);
+        return numA - numB;
+      })
+      .forEach(u => {
+        // 🔥 Sayaçları artır
+        if(u.type === "resident") sakiniCount++;
+        else if(u.type === "security") guvenlikCount++;
+        else if(u.type === "admin") amirCount++;
+
+        const tr = document.createElement('tr');
+        const displayBlockSite = u.block ? u.block : (u.siteName ? u.siteName : "");
+        tr.innerHTML = `<td>${u.username}</td>
+                        <td>${displayBlockSite}</td>
+                        <td>${mapType(u.type)}</td>
+                        <td>${u.password}</td>
+                        <td>${u.phone||''}</td>
+                        <td>
+                          <button class="edit" data-username="${u.username}">DÜZENLE</button>
+                          <button class="delete" data-username="${u.username}">SİL</button>
+                        </td>`;
+        usersTable.appendChild(tr);
+      });
+
+    // 🔥 Özet alanını güncelle
+    const summaryEl = document.getElementById('userSummary');
+    if(summaryEl){
+      summaryEl.innerHTML = `👤 Site Sakinleri: ${sakiniCount} &nbsp; | &nbsp; 🛡️ Güvenlik: ${guvenlikCount} &nbsp; | &nbsp; ⭐ Amir: ${amirCount}`;
+    }
+
+    // Satır eventlerini tekrar bağla
+    if(typeof attachRowEvents === 'function') attachRowEvents();
+  });
+}
+
+// Satır eventleri (Düzenle ve Sil)
+function attachRowEvents(){
+  document.querySelectorAll('.delete').forEach(btn=>{
+    btn.onclick = async () => { 
+      if(confirm('Kullanıcı silinsin mi?')) await remove(ref(db,'users/'+btn.dataset.username));
+    }
+  });
+  document.querySelectorAll('.edit').forEach(btn=>{
+    btn.onclick = () => {
+      const user = allUsers[btn.dataset.username];
+      document.getElementById('editApartment').value = user.username;
+      document.getElementById('editPassword').value = user.password;
+      document.getElementById('editPhone').value = user.phone||'';
+      document.getElementById('editModal').style.display = "flex";
+    }
+  });
+}
+
+// Listeyi başlat
+listUsers();
+document.getElementById('userFilter').addEventListener('change', e => { listUsers(e.target.value); });
+
+// Dinamik alan göster
+const newType = document.getElementById('newType');
+const residentFields = document.getElementById('residentFields');
+const otherFields = document.getElementById('otherFields');
+function toggleFields(){
+  if(newType.value === "resident"){
+    residentFields.style.display = "block"; 
+    otherFields.style.display = "none";
+  } else { // admin, security ve company için
+    residentFields.style.display = "none"; 
+    otherFields.style.display = "block";
+  }
+}
+
+newType.addEventListener('change', toggleFields);
+toggleFields();
+
+// Tüm inputları büyük harfe çevir
+document.querySelectorAll('input').forEach(inp=>{
+  inp.addEventListener('input', ()=>{ inp.value = inp.value.toUpperCase(); });
+});
+
+// Yeni kullanıcı oluştur
+document.getElementById('createUserBtn').addEventListener('click', async ()=>{
+  const type = newType.value;
+  let username, password, phone, block, siteName;
+
+ if(type==="resident"){
+    block = document.getElementById('newBlock').value.trim().toUpperCase();
+    siteName = document.getElementById('newSite').value.trim().toUpperCase();
+    username = document.getElementById('newApartment').value.trim().toUpperCase();
+    password = username;
+    phone = document.getElementById('newPhone').value.trim();
+} else if(type==="admin" || type==="company" || type==="security"){
+    username = document.getElementById('newUsername').value.trim().toUpperCase();
+    password = username;
+    phone = document.getElementById('newPhoneOther').value.trim();
+    block = "";
+    siteName = "";
+}
+
+
+  if(!username){ 
+    alert("Kullanıcı adı boş olamaz!"); 
+    return; 
+  }
+
+  await set(ref(db,'users/'+username), {username, password, type, block:block||"", siteName:siteName||"", phone});
+  alert("Kullanıcı oluşturuldu!");
+
+  // Inputları temizle
+  document.getElementById('newApartment').value = "";
+  document.getElementById('newSite').value = "";
+  document.getElementById('newBlock').selectedIndex = 0;
+  document.getElementById('newUsername').value = "";
+  document.getElementById('newPhone').value = "";
+  document.getElementById('newPhoneOther').value = "";
+
+  // Listeyi güncelle
+  listUsers();
+});
+
+// Toplu ekleme
+async function addBulkUsers(count) {
+  const block = document.getElementById('bulkBlock').value.trim().toUpperCase();
+  const siteName = document.getElementById('bulkSite').value.trim().toUpperCase();
+
+  const snapshot = await get(ref(db, 'users'));
+  const val = snapshot.val() || {};
+
+  // ✅ Sadece seçilen blok veya siteye ait kullanıcıları al
+  const existingNums = Object.values(val)
+    .filter(u => {
+      if (block && siteName) return u.block === block && u.siteName === siteName;
+      if (block) return u.block === block;
+      if (siteName) return u.siteName === siteName;
+      return false;
+    })
+    .map(u => {
+      const match = u.username.match(/\d+$/);
+      return match ? parseInt(match[0]) : 0;
+    });
+
+  // ✅ Eğer hiç yoksa 1’den başla, varsa en büyük numaradan devam et
+  let start = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+
+  for (let i = start; i < start + count; i++) {
+    let username = siteName 
+      ? (block ? siteName + block + i : siteName + i) 
+      : (block ? block + i : "USER" + i);
+
+    username = username.toUpperCase();
+
+    await set(ref(db, 'users/' + username), {
+      username,
+      password: username,
+      type: 'resident',
+      block: block || "",
+      siteName: siteName || "",
+      phone: ''
+    });
+  }
+}
+
+document.querySelectorAll('.bulkBtn').forEach(btn=>{
+  btn.addEventListener('click', async ()=> {
+    const count = parseInt(btn.dataset.count);
+    await addBulkUsers(count);
+    document.getElementById('bulkMsg').innerText=`${count} kullanıcı eklendi!`;
+  });
+});
+
+// Toplu silme
+document.getElementById('bulkDeleteBtn').addEventListener('click', async ()=> {
+  if(confirm('Tüm kullanıcılar silinsin mi?')){ await remove(ref(db,'users')); document.getElementById('bulkMsg').innerText="Tüm kullanıcılar silindi!"; }
+});
+
+// Düzenleme modal
+document.getElementById('closeEditBtn').addEventListener('click', ()=> {document.getElementById('editModal').style.display="none";});
+document.getElementById('saveEditBtn').addEventListener('click', async ()=>{
+  const username = document.getElementById('editApartment').value;
+  const password = username; // Şifre her zaman kullanıcı adıyla aynı
+  const phone = document.getElementById('editPhone').value;
+  await update(ref(db,'users/'+username), {password, phone});
+  document.getElementById('editModal').style.display="none";
+});
+
+// Arama
+document.getElementById('searchBtn').addEventListener('click', ()=>{
+  const query = document.getElementById('searchInput').value.trim().toUpperCase();
+  if(!query){document.getElementById('searchMsg').innerText="Arama boş!"; return;}
+  const result = Object.values(allUsers).filter(u=>u.username.includes(query));
+  if(result.length===0){document.getElementById('searchMsg').innerText="Kullanıcı bulunamadı!"; usersTable.innerHTML="";} 
+  else {
+    document.getElementById('searchMsg').innerText=`${result.length} kullanıcı bulundu.`;
+    usersTable.innerHTML="";
+    result.forEach(u => {
+      const displayBlockSite = u.block ? u.block : (u.siteName ? u.siteName : "");
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${u.username}</td>
+                      <td>${displayBlockSite}</td>
+                      <td>${mapType(u.type)}</td>
+                      <td>${u.password}</td>
+                      <td>${u.phone||''}</td>
+                      <td>
+                        <button class="edit" data-username="${u.username}">DÜZENLE</button>
+                        <button class="delete" data-username="${u.username}">SİL</button>
+                      </td>`;
+      usersTable.appendChild(tr);
+    });
+    attachRowEvents();
+  }
+});
+document.getElementById('depoBtn').addEventListener('click', () => {
+  window.location.href = 'panel.html';
+});
+
+</script>
+</body>
+</html>
+
